@@ -9,6 +9,15 @@ from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
 API_URL = "http://localhost:8080/v1/chat/completions" # HAProxy endpoint
 MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+MAX_TOKENS = 100
+PROMPTS = [
+    "Explain quantum computing simply.",
+    "Summarize AI safety concerns.",
+    "Write a haiku about the moon.",
+    "Describe reinforcement learning briefly.",
+    "What are transformers in ML?"
+]
+
 
 console = Console()
 
@@ -18,7 +27,7 @@ def stream_chat(prompt: str, client_id: int, progress, task_id):
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "stream": True,
-        "max_tokens": 100,
+        "max_tokens": MAX_TOKENS,
     }
 
     # simulate progress from streaming
@@ -45,22 +54,15 @@ def stream_chat(prompt: str, client_id: int, progress, task_id):
             except Exception:
                 continue
 
-        progress.update(task_id, completed=100)
+        progress.update(task_id, completed=MAX_TOKENS)
         progress.update(task_id, description=f"[green]Client {client_id}: idling...")
 
 
 def client_loop(client_id, progress, task_id):
-    prompts = [
-        "Explain quantum computing simply.",
-        "Summarize AI safety concerns.",
-        "Write a haiku about the moon.",
-        "Describe reinforcement learning briefly.",
-        "What are transformers in ML?"
-    ]
     while True:
-        prompt = random.choice(prompts)
+        prompt = random.choice(PROMPTS)
         progress.update(task_id, description=f"[cyan]Client {client_id}: running...")
-        progress.reset(task_id, total=100)
+        progress.reset(task_id, total=MAX_TOKENS)
         stream_chat(prompt, client_id, progress, task_id)
         time.sleep(random.uniform(3, 6))  # wait before next inference
 
@@ -76,7 +78,7 @@ def main():
         transient=False,
         refresh_per_second=5,
     ) as progress:
-        tasks = [progress.add_task(f"Client {i} idle", total=100) for i in range(num_clients)]
+        tasks = [progress.add_task(f"Client {i}: idle", total=MAX_TOKENS) for i in range(num_clients)]
         threads = [
             threading.Thread(target=client_loop, args=(i, progress, tasks[i]), daemon=True)
             for i in range(num_clients)

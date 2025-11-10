@@ -1,5 +1,2 @@
-# just -l
-
-test TEST:
-    @echo "{{TEST}}"
-
+simulate-load:
+    python ./inference/bin/simulate-load.py

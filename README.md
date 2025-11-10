@@ -1,4 +1,18 @@
-## Checking the model endpoints
+## Quickstart
+
+* Install [docker](https://docs.docker.com/get-docker/)
+* Install [docker-compose](https://docs.docker.com/compose/install/)
+* Install [just](https://github.com/casey/just?tab=readme-ov-file#installation)
+
+Run the stack
+
+```bash
+docker-compose up -d
+# ... give it some time ...
+just simulate-load
+```
+
+## Endpoints
 
 ```bash
 curl -s http://localhost:8000/v1/models | jq
@@ -38,7 +52,7 @@ curl -s http://localhost:8000/v1/models | jq
 ```
 
 
-Run single shot inference:
+Run single-shot inference:
 
 ```bash
 curl -s http://localhost:8000/v1/chat/completions \
