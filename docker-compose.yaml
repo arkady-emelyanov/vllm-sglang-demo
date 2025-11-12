@@ -8,13 +8,13 @@ services:
       - "8000:8000"
     environment:
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - VLLM_NO_USAGE_STATS=1
+      - DO_NOT_TRACK=1
     volumes:
       - ~/.cache/huggingface:/root/.cache/huggingface
-    command: >
-      --model TinyLlama/TinyLlama-1.1B-Chat-v1.0
-      --max-model-len 2048
-      --gpu-memory-utilization 0.8
-      --dtype bfloat16
+      - ./serve.sh:/serve.sh
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["/serve.sh"]
     deploy:
       resources:
         reservations:
