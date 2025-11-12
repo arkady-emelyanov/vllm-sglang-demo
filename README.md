@@ -1,7 +1,5 @@
 ## Quickstart
 
-* Install [docker](https://docs.docker.com/get-docker/)
-* Install [docker-compose](https://docs.docker.com/compose/install/)
 * Install [just](https://github.com/casey/just?tab=readme-ov-file#installation)
 
 Run the stack
