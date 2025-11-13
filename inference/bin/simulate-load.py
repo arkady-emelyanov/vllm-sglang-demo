@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import threading
 import requests
 import json
@@ -7,9 +8,12 @@ import random
 from rich.console import Console
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
-API_URL = "http://localhost:8080/v1/chat/completions" # HAProxy endpoint
+
+API_URL = "http://localhost:8080/v1/chat/completions"
 MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MAX_TOKENS = 500
+NUM_WORKERS = 5
+
 PROMPTS = [
     "Explain in detail how quantum entanglement can be used to enable ultra-secure communication networks, including examples of practical experiments, potential technological applications, and the theoretical limitations imposed by decoherence and measurement, while comparing it to classical encryption methods.",
     "Provide a comprehensive overview of reinforcement learning algorithms, covering Q-learning, deep Q-networks, policy gradients, actor-critic methods, and their applications in robotics, video games, autonomous driving, and finance, while highlighting the challenges of sample efficiency, reward shaping, and overfitting in high-dimensional environments.",
@@ -65,8 +69,6 @@ PROMPTS = [
 ]
 
 
-console = Console()
-
 def stream_chat(prompt: str, client_id: int, progress, task_id):
     headers = {"Content-Type": "application/json"}
     data = {
@@ -76,11 +78,10 @@ def stream_chat(prompt: str, client_id: int, progress, task_id):
         "max_tokens": MAX_TOKENS,
     }
 
-    # simulate progress from streaming
     with requests.post(API_URL, headers=headers, json=data, stream=True) as response:
         if response.status_code != 200:
-            progress.update(task_id, description=f"[red]Client {client_id}: Error")
-            raise Exception(response.text)
+            progress.update(task_id, description=f"[red]Client {client_id}: error")
+            return
 
         output = ""
         total_chunks = 0
@@ -101,36 +102,36 @@ def stream_chat(prompt: str, client_id: int, progress, task_id):
                 continue
 
         progress.update(task_id, completed=MAX_TOKENS)
-        progress.update(task_id, description=f"[green]Client {client_id}: idling...")
+        progress.update(task_id, description=f"[green]Client {client_id}: completed.")
 
 
 def client_loop(client_id, progress, task_id):
-    first_run = True
     while True:
-        if first_run:
-            progress.update(task_id, description=f"[cyan]Client {client_id}: warming up...")
-            time.sleep(round(random.uniform(0.1, 1.5), 2))
-            first_run = False
-
         prompt = random.choice(PROMPTS)
         progress.update(task_id, description=f"[cyan]Client {client_id}: running...")
         progress.reset(task_id, total=MAX_TOKENS)
         stream_chat(prompt, client_id, progress, task_id)
-        time.sleep(random.uniform(3, 6))  # wait before next inference
+
+        time.sleep(random.uniform(1, 3))
+
 
 
 def main():
-    num_clients = 10
+    num_clients = 5
+
+    console = Console()
     with Progress(
         TextColumn("[bold blue]{task.description}"),
         BarColumn(),
-        #TextColumn("{task.completed}%"),
+        TextColumn("{task.completed}/{task.total}"),
         TimeElapsedColumn(),
         console=console,
         transient=False,
         refresh_per_second=5,
+        auto_refresh=True,
     ) as progress:
-        tasks = [progress.add_task(f"Client {i}: idle", total=MAX_TOKENS) for i in range(num_clients)]
+        tasks = [progress.add_task(f"Client {i}: idle", total=100) for i in range(num_clients)]
+
         threads = [
             threading.Thread(target=client_loop, args=(i, progress, tasks[i]), daemon=True)
             for i in range(num_clients)
@@ -141,15 +142,12 @@ def main():
                 t.start()
 
             for t in threads:
-                t.join()
-
+                t.join()        
+            
         except KeyboardInterrupt:
             console.print("[yellow]\nStopped by user.")
-        
-        except Exception as e:
-            console.print(f"[red]Error: {e}")
+            sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
-

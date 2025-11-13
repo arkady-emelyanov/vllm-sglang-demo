@@ -1,18 +1,19 @@
-services:
-  
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: vllm
+x-templates:
+  vllm: &vllm
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
+    container_name: openai-endpoint
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "30000:30000"
     environment:
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - VLLM_NO_USAGE_STATS=1
       - DO_NOT_TRACK=1
     volumes:
-      - ~/.cache/huggingface:/root/.cache/huggingface
-      - ./serve.sh:/serve.sh
+      - ./serve.vllm.sh:/serve.sh
+    init: true
     entrypoint: ["/bin/bash", "-c"]
     command: ["/serve.sh"]
     deploy:
@@ -22,6 +23,30 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  sglang: &sglang
+    build:
+      context: .
+      dockerfile: Dockerfile.sglang
+    container_name: openai-endpoint
+    restart: unless-stopped
+    ports:
+      - "30000:30000"
+    volumes:
+      - ./serve.sglang.sh:/serve.sh
+    init: true
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["/serve.sh"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+services:  
+  openai-endpoint: *vllm # *sglang
 
   nvidia_gpu_exporter:
     image: nvidia/dcgm-exporter:latest
@@ -73,6 +98,8 @@ services:
       - "8080:80"
     volumes:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - openai-endpoint
 
 volumes:
   prometheus_data:
