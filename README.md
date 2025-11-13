@@ -16,7 +16,7 @@ services:
   openai-endpoint: *sglang
 ```
 
+* Run `docker compose build`
 * Run `docker compose up -d`
 * Run `pip install -r requirements.txt`
 * Run `python inference/bin/simulate-load.py`
-
