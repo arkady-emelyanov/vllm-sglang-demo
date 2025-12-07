@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+import os
+from pathlib import Path
+from dotenv import load_dotenv, find_dotenv
+
 import sys
 import threading
 import requests
@@ -9,10 +13,12 @@ from rich.console import Console
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 
 
+dotenv_file = find_dotenv()
+load_dotenv(dotenv_path=dotenv_file)
+
 API_URL = "http://localhost:8080/v1/chat/completions"
-MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 MAX_TOKENS = 500
-NUM_WORKERS = 5
+NUM_WORKERS = 10
 
 PROMPTS = [
     "Explain in detail how quantum entanglement can be used to enable ultra-secure communication networks, including examples of practical experiments, potential technological applications, and the theoretical limitations imposed by decoherence and measurement, while comparing it to classical encryption methods.",
@@ -72,7 +78,7 @@ PROMPTS = [
 def stream_chat(prompt: str, client_id: int, progress, task_id):
     headers = {"Content-Type": "application/json"}
     data = {
-        "model": MODEL,
+        "model": os.getenv("MODEL_PATH"),
         "messages": [{"role": "user", "content": prompt}],
         "stream": True,
         "max_tokens": MAX_TOKENS,
@@ -80,6 +86,8 @@ def stream_chat(prompt: str, client_id: int, progress, task_id):
 
     with requests.post(API_URL, headers=headers, json=data, stream=True) as response:
         if response.status_code != 200:
+            print(response.text)
+            sys.exit(1)
             progress.update(task_id, description=f"[red]Client {client_id}: error")
             return
 
@@ -117,8 +125,6 @@ def client_loop(client_id, progress, task_id):
 
 
 def main():
-    num_clients = 5
-
     console = Console()
     with Progress(
         TextColumn("[bold blue]{task.description}"),
@@ -130,11 +136,11 @@ def main():
         refresh_per_second=5,
         auto_refresh=True,
     ) as progress:
-        tasks = [progress.add_task(f"Client {i}: idle", total=100) for i in range(num_clients)]
+        tasks = [progress.add_task(f"Client {i}: idle", total=100) for i in range(NUM_WORKERS)]
 
         threads = [
             threading.Thread(target=client_loop, args=(i, progress, tasks[i]), daemon=True)
-            for i in range(num_clients)
+            for i in range(NUM_WORKERS)
         ]
 
         try:

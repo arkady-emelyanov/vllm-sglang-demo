@@ -2,16 +2,20 @@ x-templates:
   vllm: &vllm
     build:
       context: .
-      dockerfile: Dockerfile.vllm
+      args:
+        - BASE_IMAGE=vllm/vllm-openai:latest
     container_name: openai-endpoint
     restart: unless-stopped
     ports:
       - "30000:30000"
+    env_file: ".env"
     environment:
-      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - VLLM_NO_USAGE_STATS=1
       - DO_NOT_TRACK=1
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - HF_HOME=/home/vllm/.cache/huggingface
     volumes:
+      - ~/.cache/huggingface:/home/vllm/.cache/huggingface
       - ./serve.vllm.sh:/serve.sh
     init: true
     entrypoint: ["/bin/bash", "-c"]
@@ -27,12 +31,15 @@ x-templates:
   sglang: &sglang
     build:
       context: .
-      dockerfile: Dockerfile.sglang
+      args:
+        - BASE_IMAGE=lmsysorg/sglang:latest
     container_name: openai-endpoint
     restart: unless-stopped
     ports:
       - "30000:30000"
+    env_file: ".env"
     volumes:
+      - ~/.cache/huggingface:/home/vllm/.cache/huggingface
       - ./serve.sglang.sh:/serve.sh
     init: true
     entrypoint: ["/bin/bash", "-c"]
@@ -74,6 +81,8 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    depends_on:
+      - openai-endpoint
 
   grafana:
     image: grafana/grafana:latest

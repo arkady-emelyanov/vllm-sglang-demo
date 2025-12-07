@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
-MODEL_PATH="${MODEL_PATH:-TinyLlama/TinyLlama-1.1B-Chat-v1.0}"
+if [[ -z ${MODEL_PATH} ]]; then
+    echo "Error: MODEL_PATH is not set"
+    exit 1
+fi
+
+echo ""
+echo "Serving: ${MODEL_PATH}"
+echo ""
 
 vllm serve ${MODEL_PATH} \
   --port 30000 \
-  --dtype float16 \
   --gpu-memory-utilization 0.80
