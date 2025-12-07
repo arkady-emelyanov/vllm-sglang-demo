@@ -18,7 +18,7 @@ load_dotenv(dotenv_path=dotenv_file)
 
 API_URL = "http://localhost:8080/v1/chat/completions"
 MAX_TOKENS = 500
-NUM_WORKERS = 10
+NUM_WORKERS = 5
 
 PROMPTS = [
     "Explain in detail how quantum entanglement can be used to enable ultra-secure communication networks, including examples of practical experiments, potential technological applications, and the theoretical limitations imposed by decoherence and measurement, while comparing it to classical encryption methods.",
